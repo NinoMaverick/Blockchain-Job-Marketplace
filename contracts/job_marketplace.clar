@@ -52,7 +52,7 @@
             (caller tx-sender)
             (existing-profile (map-get? job-seekers caller))
         )
-       ;; Ensure the profile does not already exist
+        ;; Ensure the profile does not already exist
         (if (is-none existing-profile)
             (begin
                 ;; Validate input data
@@ -116,3 +116,66 @@
     )
 )
 
+;; Public function to create a job listing
+(define-public (create-job-listing 
+    (title (string-ascii 100))
+    (description (string-ascii 500))
+    (location (string-ascii 100))
+    (requirements (list 10 (string-ascii 50))))
+    (let
+        (
+            (caller tx-sender)
+            (existing-job (map-get? job-listings caller))
+        )
+        ;; Ensure the job listing does not already exist
+        (if (is-none existing-job)
+            (begin
+                ;; Validate input data
+                (if (or (is-eq title "")
+                        (is-eq description "")
+                        (is-eq location "")
+                        (is-eq (len requirements) u0))
+                    (err ERR-INVALID-JOB) ;; Handle invalid input
+                    (begin
+                        ;; Store the new job listing
+                        (map-set job-listings caller
+                            {
+                                title: title,
+                                description: description,
+                                employer: caller,
+                                location: location,
+                                requirements: requirements
+                            }
+                        )
+                        (ok "Job listing created successfully.") ;; Return success message
+                    )
+                )
+            )
+            (err ERR-ALREADY-EXISTS)
+        )
+    )
+)
+
+;; Read-only function to get job listing by job ID
+(define-read-only (get-job-listing (job-id principal))
+    (match (map-get? job-listings job-id)
+        job (ok job)
+        ERR-NOT-FOUND
+    )
+)
+
+;; Read-only function to get a job seeker's profile
+(define-read-only (get-job-seeker-profile (user principal))
+    (match (map-get? job-seekers user)
+        profile (ok profile)
+        ERR-NOT-FOUND
+    )
+)
+
+;; Read-only function to get an employer's profile
+(define-read-only (get-employer-profile (user principal))
+    (match (map-get? employers user)
+        profile (ok profile)
+        ERR-NOT-FOUND
+    )
+)
